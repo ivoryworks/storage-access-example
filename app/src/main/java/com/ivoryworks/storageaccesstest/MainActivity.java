@@ -19,6 +19,7 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
     private static final int REQ_CODE_PRIMARY_WRITE = 1000;
+    private static final int REQ_CODE_SECONDARY_WRITE = 2000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,6 +64,22 @@ public class MainActivity extends AppCompatActivity {
         startActivityForResult(intent, REQ_CODE_PRIMARY_WRITE);
     }
 
+    /**
+     * SDカードに書き込む
+     */
+    public void onSecondaryWrite(View view) {
+        StorageManager storageManager = (StorageManager) getSystemService(this.STORAGE_SERVICE);
+        List<StorageVolume> volumes =  storageManager.getStorageVolumes();
+        for (StorageVolume volume : volumes) {
+            if (!volume.isRemovable()) {
+                continue;
+            }
+            Intent intent = volume.createAccessIntent(Environment.DIRECTORY_MUSIC);
+            startActivityForResult(intent, REQ_CODE_PRIMARY_WRITE);
+            break;
+        }
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         Uri uri = data.getData();
@@ -71,6 +88,7 @@ public class MainActivity extends AppCompatActivity {
 
         switch (requestCode) {
             case REQ_CODE_PRIMARY_WRITE:
+            case REQ_CODE_SECONDARY_WRITE:
                 DocumentFile newFile = pickedDir.createFile("text/plain", "test");
                 try {
                     OutputStream out = getContentResolver().openOutputStream(newFile.getUri());
