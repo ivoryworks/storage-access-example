@@ -89,7 +89,8 @@ public class MainActivity extends AppCompatActivity {
         switch (requestCode) {
             case REQ_CODE_PRIMARY_WRITE:
             case REQ_CODE_SECONDARY_WRITE:
-                DocumentFile newFile = pickedDir.createFile("text/plain", "test");
+                DocumentFile pkgDir = pickedDir.createDirectory(getPackageName());
+                DocumentFile newFile = pkgDir.createFile("text/plain", "test");
                 try {
                     OutputStream out = getContentResolver().openOutputStream(newFile.getUri());
                     out.write("This file is not audio.".getBytes());
