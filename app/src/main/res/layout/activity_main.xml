@@ -13,4 +13,14 @@
         android:textSize="16sp"
         tools:text="StorageVolume" />
 
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:onClick="onPrimaryWrite"
+        android:text="Primary write"
+        app:layout_constraintTop_toBottomOf="@+id/text_storage_volume"
+        tools:layout_editor_absoluteX="0dp"
+        tools:ignore="MissingConstraints" />
+
 </android.support.constraint.ConstraintLayout>
