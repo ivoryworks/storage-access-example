@@ -10,6 +10,7 @@ import android.os.storage.StorageVolume;
 import android.support.v4.provider.DocumentFile;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.View;
 import android.widget.TextView;
 
@@ -61,25 +62,41 @@ public class MainActivity extends AppCompatActivity {
      * 内部ストレージに書き込む
      */
     public void onPrimaryWrite(View view) {
-        StorageManager storageManager = (StorageManager) getSystemService(this.STORAGE_SERVICE);
-        StorageVolume volume = storageManager.getPrimaryStorageVolume();
-        Intent intent = volume.createAccessIntent(Environment.DIRECTORY_MUSIC);
-        startActivityForResult(intent, STORE_TYPE_PRIMARY);
+        Uri uri = getUri(PREF_KEY_PRIMARY_URI);
+        if (uri == null) {
+            // 権限取得なし
+            StorageManager storageManager = (StorageManager) getSystemService(this.STORAGE_SERVICE);
+            StorageVolume volume = storageManager.getPrimaryStorageVolume();
+            Intent intent = volume.createAccessIntent(Environment.DIRECTORY_MUSIC);
+            startActivityForResult(intent, STORE_TYPE_PRIMARY);
+        } else {
+            // 権限取得済み
+            DocumentFile pickedDir = DocumentFile.fromTreeUri(this, uri);
+            saveFile(pickedDir);
+        }
     }
 
     /**
      * SDカードに書き込む
      */
     public void onSecondaryWrite(View view) {
-        StorageManager storageManager = (StorageManager) getSystemService(this.STORAGE_SERVICE);
-        List<StorageVolume> volumes =  storageManager.getStorageVolumes();
-        for (StorageVolume volume : volumes) {
-            if (!volume.isRemovable()) {
-                continue;
+        Uri uri = getUri(PREF_KEY_SECONDARY_URI);
+        if (uri == null) {
+            // 権限取得なし
+            StorageManager storageManager = (StorageManager) getSystemService(this.STORAGE_SERVICE);
+            List<StorageVolume> volumes =  storageManager.getStorageVolumes();
+            for (StorageVolume volume : volumes) {
+                if (!volume.isRemovable()) {
+                    continue;
+                }
+                Intent intent = volume.createAccessIntent(Environment.DIRECTORY_MUSIC);
+                startActivityForResult(intent, STORE_TYPE_PRIMARY);
+                break;
             }
-            Intent intent = volume.createAccessIntent(Environment.DIRECTORY_MUSIC);
-            startActivityForResult(intent, STORE_TYPE_PRIMARY);
-            break;
+        } else {
+            // 権限取得済み
+            DocumentFile pickedDir = DocumentFile.fromTreeUri(this, uri);
+            saveFile(pickedDir);
         }
     }
 
@@ -134,5 +151,14 @@ public class MainActivity extends AppCompatActivity {
                 break;
         }
         prefEditor.apply();
+    }
+
+    /**
+     * Uriを返却する
+     */
+    private Uri getUri(String key) {
+        SharedPreferences pref = getSharedPreferences(getPackageName(), 0);
+        String uriStr =  pref.getString(key, "");
+        return TextUtils.isEmpty(uriStr) ? null : Uri.parse(uriStr);
     }
 }
