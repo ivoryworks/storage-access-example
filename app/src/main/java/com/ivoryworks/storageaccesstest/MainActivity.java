@@ -2,6 +2,7 @@ package com.ivoryworks.storageaccesstest;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.storage.StorageManager;
@@ -18,8 +19,10 @@ import java.io.OutputStream;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
-    private static final int REQ_CODE_PRIMARY_WRITE = 1000;
-    private static final int REQ_CODE_SECONDARY_WRITE = 2000;
+    private static final int STORE_TYPE_PRIMARY = 1000;
+    private static final int STORE_TYPE_SECONDARY = 2000;
+    private static final String PREF_KEY_PRIMARY_URI = "pref_key_primary_uri";
+    private static final String PREF_KEY_SECONDARY_URI = "pref_key_secondary_uri";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,7 +64,7 @@ public class MainActivity extends AppCompatActivity {
         StorageManager storageManager = (StorageManager) getSystemService(this.STORAGE_SERVICE);
         StorageVolume volume = storageManager.getPrimaryStorageVolume();
         Intent intent = volume.createAccessIntent(Environment.DIRECTORY_MUSIC);
-        startActivityForResult(intent, REQ_CODE_PRIMARY_WRITE);
+        startActivityForResult(intent, STORE_TYPE_PRIMARY);
     }
 
     /**
@@ -75,7 +78,7 @@ public class MainActivity extends AppCompatActivity {
                 continue;
             }
             Intent intent = volume.createAccessIntent(Environment.DIRECTORY_MUSIC);
-            startActivityForResult(intent, REQ_CODE_PRIMARY_WRITE);
+            startActivityForResult(intent, STORE_TYPE_PRIMARY);
             break;
         }
     }
@@ -87,20 +90,49 @@ public class MainActivity extends AppCompatActivity {
         DocumentFile pickedDir = DocumentFile.fromTreeUri(this, uri);
 
         switch (requestCode) {
-            case REQ_CODE_PRIMARY_WRITE:
-            case REQ_CODE_SECONDARY_WRITE:
-                DocumentFile pkgDir = pickedDir.createDirectory(getPackageName());
-                DocumentFile newFile = pkgDir.createFile("text/plain", "test");
-                try {
-                    OutputStream out = getContentResolver().openOutputStream(newFile.getUri());
-                    out.write("This file is not audio.".getBytes());
-                    out.close();
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+            case STORE_TYPE_PRIMARY:
+            case STORE_TYPE_SECONDARY:
+                saveUri(uri, requestCode);
+                saveFile(pickedDir);
                 break;
         }
+    }
+
+    /**
+     * ファイルを保存する
+     */
+    private void saveFile(DocumentFile rootDir) {
+        DocumentFile pkgDir = rootDir.findFile(getPackageName());
+        if (pkgDir == null) {
+            // パッケージ名のディレクトリが存在しなければ作成する
+            pkgDir = rootDir.createDirectory(getPackageName());
+        }
+        DocumentFile newFile = pkgDir.createFile("text/plain", "test");
+        try {
+            OutputStream out = getContentResolver().openOutputStream(newFile.getUri());
+            out.write("This file is not audio.".getBytes());
+            out.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Uriを保存する
+     */
+    private void saveUri(Uri uri, int type) {
+        SharedPreferences pref = getSharedPreferences(getPackageName(), 0);
+        SharedPreferences.Editor prefEditor = pref.edit();
+        switch (type) {
+            case STORE_TYPE_PRIMARY:
+                prefEditor.putString(PREF_KEY_PRIMARY_URI, uri.toString());
+                break;
+            case STORE_TYPE_SECONDARY:
+                prefEditor.putString(PREF_KEY_SECONDARY_URI, uri.toString());
+                break;
+        }
+        prefEditor.apply();
     }
 }
